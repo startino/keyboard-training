@@ -8,6 +8,7 @@ export interface ParsedKeymap {
 export interface Layer {
   name: string
   keys: Key[]
+  thumbs: ThumbKey[]
 }
 
 export interface Key {

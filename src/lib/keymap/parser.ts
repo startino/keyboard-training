@@ -362,7 +362,7 @@ export function parseKeymap(raw: string): ParsedKeymap {
       }
     }
 
-    layers.push({ name: rawLayer.name, keys })
+    layers.push({ name: rawLayer.name, keys, thumbs: layerThumbs })
 
     // Use first layer's thumb cluster as the primary one
     if (layers.length === 1) {
