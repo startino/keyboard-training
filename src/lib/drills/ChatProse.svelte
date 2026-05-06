@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { TypingEngine } from '../engine/typingEngine'
+  import { TypingEngine } from '../engine/typingEngine.svelte'
   import TypingDisplay from '../components/TypingDisplay.svelte'
   import StatsPanel from '../components/StatsPanel.svelte'
   import { saveSession } from '../stats'
@@ -57,7 +57,6 @@
     }
 
     engine.handleKeypress(e.key)
-    engine = engine // force reactivity
 
     if (engine.isComplete()) {
       done = true

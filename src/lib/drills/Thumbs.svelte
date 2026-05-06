@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { getKeymap } from '../keymap/store.svelte'
-  import { TypingEngine } from '../engine/typingEngine'
+  import { TypingEngine } from '../engine/typingEngine.svelte'
   import TypingDisplay from '../components/TypingDisplay.svelte'
   import StatsPanel from '../components/StatsPanel.svelte'
   import { saveSession } from '../stats'
@@ -21,12 +20,13 @@
 
   function generateText(): string {
     const phrases: string[] = []
-    for (let p = 0; p < 3; p++) {
-      const len = 5 + Math.floor(Math.random() * 6) // 5-10 words
+    for (let p = 0; p < 5; p++) {
+      const len = 3 + Math.floor(Math.random() * 4) // 3-6 words
       const words: string[] = []
       for (let i = 0; i < len; i++) {
         const word = COMMON_WORDS[Math.floor(Math.random() * COMMON_WORDS.length)]
-        if (i === 0) {
+        // ~20% of random words capitalized to increase shift density
+        if (Math.random() < 0.2) {
           words.push(word.charAt(0).toUpperCase() + word.slice(1))
         } else {
           words.push(word)
@@ -70,8 +70,6 @@
     }
 
     engine.handleKeypress(e.key)
-    // Force reactivity by reassigning
-    engine = engine
 
     if (engine.isComplete()) {
       done = true
