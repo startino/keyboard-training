@@ -1,6 +1,41 @@
 <script lang="ts">
+  import KeymapUpload from './lib/components/KeymapUpload.svelte'
+  import { getLastSession } from './lib/stats'
+
+  interface DrillInfo {
+    id: string
+    title: string
+    description: string
+  }
+
+  const drills: DrillInfo[] = [
+    {
+      id: 'flashcards',
+      title: 'Flashcards',
+      description: 'Practice individual key positions and combos with spaced repetition.',
+    },
+    {
+      id: 'thumbs',
+      title: 'Thumbs',
+      description: 'Train thumb cluster muscle memory for layers and modifiers.',
+    },
+    {
+      id: 'chat',
+      title: 'Chat Prose',
+      description: 'Type full sentences and paragraphs to build real-world speed.',
+    },
+  ]
+
   function handleClick(drill: string) {
     console.log(`Selected drill: ${drill}`)
+  }
+
+  function formatWpm(wpm: number): string {
+    return `${Math.round(wpm)} wpm`
+  }
+
+  function formatAccuracy(accuracy: number): string {
+    return `${accuracy.toFixed(0)}%`
   }
 </script>
 
@@ -13,32 +48,27 @@
   />
 </svelte:head>
 
-<main class="min-h-screen bg-bg text-text font-mono flex flex-col items-center justify-center px-4">
-  <h1 class="text-4xl font-bold text-accent mb-12">Keyboard Training</h1>
+<main class="min-h-screen bg-bg text-text font-mono flex flex-col items-center justify-center px-4 gap-12">
+  <h1 class="text-4xl font-bold text-accent">Keyboard Training</h1>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
-    <button
-      onclick={() => handleClick('flashcards')}
-      class="bg-card rounded-xl p-8 text-left hover:ring-2 hover:ring-accent transition-all cursor-pointer"
-    >
-      <h2 class="text-xl font-bold text-accent mb-3">Flashcards</h2>
-      <p class="text-text/70 text-sm">Practice individual key positions and combos with spaced repetition.</p>
-    </button>
-
-    <button
-      onclick={() => handleClick('thumbs')}
-      class="bg-card rounded-xl p-8 text-left hover:ring-2 hover:ring-accent transition-all cursor-pointer"
-    >
-      <h2 class="text-xl font-bold text-accent mb-3">Thumbs</h2>
-      <p class="text-text/70 text-sm">Train thumb cluster muscle memory for layers and modifiers.</p>
-    </button>
-
-    <button
-      onclick={() => handleClick('chat-prose')}
-      class="bg-card rounded-xl p-8 text-left hover:ring-2 hover:ring-accent transition-all cursor-pointer"
-    >
-      <h2 class="text-xl font-bold text-accent mb-3">Chat Prose</h2>
-      <p class="text-text/70 text-sm">Type full sentences and paragraphs to build real-world speed.</p>
-    </button>
+    {#each drills as drill}
+      {@const lastSession = getLastSession(drill.id)}
+      <button
+        onclick={() => handleClick(drill.id)}
+        class="bg-card rounded-xl p-8 text-left hover:ring-2 hover:ring-accent transition-all cursor-pointer"
+      >
+        <h2 class="text-xl font-bold text-accent mb-3">{drill.title}</h2>
+        <p class="text-text/70 text-sm">{drill.description}</p>
+        {#if lastSession}
+          <div class="mt-4 pt-3 border-t border-text/10 flex gap-4 text-xs text-text/50">
+            <span>{formatWpm(lastSession.wpm)}</span>
+            <span>{formatAccuracy(lastSession.accuracy)}</span>
+          </div>
+        {/if}
+      </button>
+    {/each}
   </div>
+
+  <KeymapUpload />
 </main>
