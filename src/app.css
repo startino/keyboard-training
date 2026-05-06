@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: 'Roboto Mono', ui-monospace, monospace;
+  --color-bg: #323437;
+  --color-text: #d1d0c5;
+  --color-accent: #e2b714;
+  --color-card: #2c2e31;
+}
