@@ -18,7 +18,7 @@ function loadInitial(): { keymap: ParsedKeymap; name: string; raw: string } {
   } catch {
     // fall through to default
   }
-  return { keymap: tryParseDefault(), name: 'Default (eksno corne)', raw: defaultKeymapRaw }
+  return { keymap: tryParseDefault(), name: 'Default (Toucan)', raw: defaultKeymapRaw }
 }
 
 const initial = loadInitial()
@@ -65,7 +65,7 @@ export function loadFromString(raw: string, filename?: string): boolean {
 
 export function reset(): void {
   keymap = tryParseDefault()
-  keymapName = 'Default (eksno corne)'
+  keymapName = 'Default (Toucan)'
   keymapRaw = defaultKeymapRaw
   error = null
   try {

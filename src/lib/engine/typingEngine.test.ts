@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { TypingEngine } from './typingEngine'
+import { TypingEngine } from './typingEngine.svelte'
 
 describe('TypingEngine', () => {
   let engine: TypingEngine

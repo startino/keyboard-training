@@ -60,7 +60,7 @@
   <div class="keymap-header">
     <span class="keymap-label">Keymap:</span>
     <span class="keymap-name">{getKeymapName()}</span>
-    {#if getKeymapName() !== 'Default (eksno corne)'}
+    {#if getKeymapName() !== 'Default (Toucan)'}
       <button class="reset-btn" onclick={handleReset}>Reset to default</button>
     {/if}
   </div>

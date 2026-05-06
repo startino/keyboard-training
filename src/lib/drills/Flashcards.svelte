@@ -1,5 +1,6 @@
 <script lang="ts">
   import { getKeymap } from '../keymap/store.svelte'
+  import { ZMK_CHAR_MAP } from '../keymap/zmkCharMap'
   import StatsPanel from '../components/StatsPanel.svelte'
   import { saveSession } from '../stats'
 
@@ -26,66 +27,6 @@
     RM: 'right middle',
     RR: 'right ring',
     RP: 'right pinky',
-  }
-
-  // Map ZMK key names to actual characters
-  const ZMK_CHAR_MAP: Record<string, string> = {
-    EXCL: '!',
-    EXCLAMATION: '!',
-    AT: '@',
-    AT_SIGN: '@',
-    HASH: '#',
-    POUND: '#',
-    DOLLAR: '$',
-    DLLR: '$',
-    PERCENT: '%',
-    PRCNT: '%',
-    CARET: '^',
-    AMPS: '&',
-    AMPERSAND: '&',
-    ASTERISK: '*',
-    ASTRK: '*',
-    STAR: '*',
-    LEFT_PARENTHESIS: '(',
-    LPAR: '(',
-    RIGHT_PARENTHESIS: ')',
-    RPAR: ')',
-    LEFT_BRACKET: '[',
-    LBKT: '[',
-    RIGHT_BRACKET: ']',
-    RBKT: ']',
-    LEFT_BRACE: '{',
-    LBRC: '{',
-    RIGHT_BRACE: '}',
-    RBRC: '}',
-    MINUS: '-',
-    PLUS: '+',
-    EQUAL: '=',
-    UNDER: '_',
-    UNDERSCORE: '_',
-    PIPE: '|',
-    BACKSLASH: '\\',
-    BSLH: '\\',
-    SLASH: '/',
-    FSLH: '/',
-    SEMICOLON: ';',
-    SEMI: ';',
-    COLON: ':',
-    SQT: "'",
-    SINGLE_QUOTE: "'",
-    DQT: '"',
-    DOUBLE_QUOTES: '"',
-    COMMA: ',',
-    PERIOD: '.',
-    DOT: '.',
-    GRAVE: '`',
-    TILDE: '~',
-    LT: '<',
-    LESS_THAN: '<',
-    GT: '>',
-    GREATER_THAN: '>',
-    QUESTION: '?',
-    QMARK: '?',
   }
 
   interface FlashCard {
@@ -209,11 +150,11 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (sessionDone) return
     if (e.key === 'Escape') {
       onBack()
       return
     }
+    if (sessionDone) return
     if (!currentCard) return
     if (e.key.length !== 1) return
 

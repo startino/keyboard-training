@@ -16,7 +16,14 @@ export interface EngineState {
 }
 
 export class TypingEngine {
-  private state: EngineState
+  state = $state<EngineState>({
+    chars: [],
+    cursor: 0,
+    startTime: null,
+    endTime: null,
+    errors: [],
+    totalTyped: 0,
+  })
   private _onComplete?: () => void
   private _onError?: (index: number, expected: string, typed: string) => void
 

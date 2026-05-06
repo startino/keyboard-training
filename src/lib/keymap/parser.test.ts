@@ -68,10 +68,10 @@ describe('parseKeymap', () => {
     expect(result.layers[0].name).toBe('home')
   })
 
-  it('should parse home layer first key correctly (SEMICOLON)', () => {
+  it('should parse home layer first key correctly (Q)', () => {
     const result = parseKeymap(keymapRaw)
     const homeLayer = result.layers[0]
-    expect(homeLayer.keys[0].tap).toBe('SEMICOLON')
+    expect(homeLayer.keys[0].tap).toBe('Q')
     expect(homeLayer.keys[0].position).toBe(0)
     expect(homeLayer.keys[0].row).toBe(0)
     expect(homeLayer.keys[0].col).toBe(0)
@@ -81,7 +81,7 @@ describe('parseKeymap', () => {
   it('should parse hold-tap bindings correctly', () => {
     const result = parseKeymap(keymapRaw)
     const homeLayer = result.layers[0]
-    // Home row first key: &shifthr LGUI A
+    // Home row first key: &hm LGUI A
     const keyA = homeLayer.keys[10] // position 10, row 1, col 0
     expect(keyA.tap).toBe('A')
     expect(keyA.hold).toBe('LGUI')

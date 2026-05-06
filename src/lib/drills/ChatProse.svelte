@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { TypingEngine } from '../engine/typingEngine'
+  import { TypingEngine } from '../engine/typingEngine.svelte'
   import TypingDisplay from '../components/TypingDisplay.svelte'
   import StatsPanel from '../components/StatsPanel.svelte'
   import { saveSession } from '../stats'
@@ -35,11 +35,11 @@
   let errorChars = $state<Map<string, number>>(new Map())
 
   function handleKeydown(e: KeyboardEvent) {
-    if (done) return
     if (e.key === 'Escape') {
       onBack()
       return
     }
+    if (done) return
     if (e.key === 'Tab') {
       e.preventDefault()
       return
@@ -57,7 +57,6 @@
     }
 
     engine.handleKeypress(e.key)
-    engine = engine // force reactivity
 
     if (engine.isComplete()) {
       done = true
