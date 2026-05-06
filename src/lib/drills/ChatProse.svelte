@@ -35,11 +35,11 @@
   let errorChars = $state<Map<string, number>>(new Map())
 
   function handleKeydown(e: KeyboardEvent) {
-    if (done) return
     if (e.key === 'Escape') {
       onBack()
       return
     }
+    if (done) return
     if (e.key === 'Tab') {
       e.preventDefault()
       return

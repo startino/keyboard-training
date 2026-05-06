@@ -49,11 +49,11 @@
   let lastKeypressTime = $state(0)
 
   function handleKeydown(e: KeyboardEvent) {
-    if (done) return
     if (e.key === 'Escape') {
       onBack()
       return
     }
+    if (done) return
     if (e.key === 'Tab') {
       e.preventDefault()
       return

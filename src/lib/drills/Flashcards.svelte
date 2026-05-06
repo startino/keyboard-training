@@ -150,11 +150,11 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (sessionDone) return
     if (e.key === 'Escape') {
       onBack()
       return
     }
+    if (sessionDone) return
     if (!currentCard) return
     if (e.key.length !== 1) return
 
