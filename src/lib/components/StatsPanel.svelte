@@ -20,7 +20,7 @@
   const wpmColor = $derived(wpm > 0 && targetWpm > 0 && wpm >= targetWpm ? '#4caf50' : '#e2b714')
 
   const wpmDelta = $derived(
-    wpm > 0 && targetWpm > 0
+    targetWpm > 0
       ? Math.round(wpm) - targetWpm
       : null
   )

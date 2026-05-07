@@ -128,9 +128,7 @@
           <p class="text-text/70 text-sm">{drill.description}</p>
           {#if lastSession}
             <div class="mt-4 pt-3 border-t border-text/10 flex gap-4 text-xs text-text/50">
-              {#if lastSession.wpm > 0}
-                <span>{formatWpm(lastSession.wpm)}</span>
-              {/if}
+              <span>{formatWpm(lastSession.wpm)}</span>
               <span>{formatAccuracy(lastSession.accuracy)}</span>
             </div>
           {/if}
