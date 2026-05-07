@@ -81,6 +81,9 @@
   let startTime = $state(0)
   let showKeyboard = $state(false)
   let lastTypedChar = $state<string | null>(null)
+  let escPendingUntil = $state(0)
+  let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
+  let showEscHint = $state(false)
 
   function pickNextCard(): FlashCard | null {
     if (cards.length === 0) return null
@@ -154,7 +157,23 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      onBack()
+      if (sessionDone) {
+        onBack()
+        return
+      }
+      const now = Date.now()
+      if (now < escPendingUntil) {
+        if (escHintTimeout) clearTimeout(escHintTimeout)
+        showEscHint = false
+        onBack()
+        return
+      }
+      escPendingUntil = now + 500
+      showEscHint = true
+      if (escHintTimeout) clearTimeout(escHintTimeout)
+      escHintTimeout = setTimeout(() => {
+        showEscHint = false
+      }, 1000)
       return
     }
     if (e.key === 'Tab') {
@@ -282,6 +301,9 @@
       <VirtualKeyboard {lastTypedChar} forcedLayer={currentCard.layerName} />
     {:else}
       <p class="font-mono text-xs" style="color: #646669;">tab to show keyboard</p>
+    {/if}
+    {#if showEscHint}
+      <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
     {/if}
   </main>
 {:else}

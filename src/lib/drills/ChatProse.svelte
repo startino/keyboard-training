@@ -36,10 +36,29 @@
   let errorChars = $state<Map<string, number>>(new Map())
   let showKeyboard = $state(false)
   let lastTypedChar = $state<string | null>(null)
+  let escPendingUntil = $state(0)
+  let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
+  let showEscHint = $state(false)
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      onBack()
+      if (done) {
+        onBack()
+        return
+      }
+      const nowEsc = Date.now()
+      if (nowEsc < escPendingUntil) {
+        if (escHintTimeout) clearTimeout(escHintTimeout)
+        showEscHint = false
+        onBack()
+        return
+      }
+      escPendingUntil = nowEsc + 500
+      showEscHint = true
+      if (escHintTimeout) clearTimeout(escHintTimeout)
+      escHintTimeout = setTimeout(() => {
+        showEscHint = false
+      }, 1000)
       return
     }
     if (e.key === 'Tab') {
@@ -143,5 +162,8 @@
     <p class="font-mono text-xs" style="color: #646669;">
       press escape to go back &middot; {showKeyboard ? 'tab to hide keyboard' : 'tab to show keyboard'}
     </p>
+    {#if showEscHint}
+      <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
+    {/if}
   </main>
 {/if}

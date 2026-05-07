@@ -50,23 +50,20 @@
     keymap.layers.find((l) => l.name === activeLayerName) ?? keymap.layers[0]
   )
 
-  let pulseToken = $state(0)
+  let pulseToken = 0
   let pulseKeyId = $state<string | null>(null)
 
   $effect(() => {
     if (!lastTypedChar) return
-    const _bumpToken = pulseToken
     const char = lastTypedChar
     if (!activeLayer) return
     const id = findKeyIdForChar(activeLayer, char)
     if (!id) return
+    const myToken = ++pulseToken
     pulseKeyId = id
-    pulseToken++
-    const myToken = pulseToken
     setTimeout(() => {
       if (myToken === pulseToken) pulseKeyId = null
     }, 150)
-    void _bumpToken
   })
 
   function findKeyIdForChar(layer: Layer, char: string): string | null {
