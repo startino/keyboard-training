@@ -238,6 +238,11 @@
       ? computeFlashcardStats({ latencies, totalCards, errorCount, startTime })
       : null
   )
+
+  /** True when at least one key has >= 5 attempts — meaning weakness weights are meaningful. */
+  const hasWeaknessData = $derived(
+    Object.values(getKeyStats().byChar).some((stat) => stat.attempts >= 5)
+  )
 </script>
 
 {#if cards.length === 0}
@@ -286,12 +291,15 @@
       </div>
 
       <button
-        onclick={() => (useWeaknessBias = !useWeaknessBias)}
+        onclick={() => hasWeaknessData && (useWeaknessBias = !useWeaknessBias)}
+        disabled={!hasWeaknessData}
         class="absolute top-0 right-0 font-mono text-xs px-2 py-1 rounded border transition-colors"
-        style={useWeaknessBias
-          ? 'color: #e2b714; border-color: #e2b714; background: transparent;'
-          : 'color: #646669; border-color: #646669; background: transparent;'}
-        title="Toggle weak-key weighting"
+        style={!hasWeaknessData
+          ? 'color: #646669; border-color: #646669; background: transparent; opacity: 0.5; cursor: default;'
+          : useWeaknessBias
+            ? 'color: #e2b714; border-color: #e2b714; background: transparent;'
+            : 'color: #646669; border-color: #646669; background: transparent;'}
+        title={!hasWeaknessData ? 'drill more sessions to enable' : 'Toggle weak-key weighting'}
       >
         {useWeaknessBias ? 'weighted by weakness' : 'uniform'}
       </button>

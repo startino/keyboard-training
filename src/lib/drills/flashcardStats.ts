@@ -22,7 +22,8 @@ export function computeFlashcardStats(opts: {
 }): FlashcardStats {
   const { latencies, totalCards, errorCount, startTime } = opts
   const duration = (Date.now() - startTime) / 1000
-  const accuracy = totalCards > 0 ? ((totalCards - errorCount) / totalCards) * 100 : 100
+  const rawAccuracy = totalCards > 0 ? ((totalCards - errorCount) / totalCards) * 100 : 100
+  const accuracy = Math.max(0, Math.min(100, rawAccuracy))
 
   const layerLatencies = new Map<string, number[]>()
   const charLatencies = new Map<string, number[]>()

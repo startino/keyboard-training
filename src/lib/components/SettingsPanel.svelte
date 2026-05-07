@@ -18,6 +18,8 @@
   let { onClose }: Props = $props()
 </script>
 
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }} />
+
 <!-- Backdrop -->
 <div
   class="settings-overlay"
@@ -25,7 +27,6 @@
   aria-modal="true"
   aria-label="Settings"
   tabindex="-1"
-  onkeydown={(e) => { if (e.key === 'Escape') onClose() }}
 >
   <!-- Click outside to close -->
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->

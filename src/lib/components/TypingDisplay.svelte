@@ -51,7 +51,7 @@
       if (ch.typedChar === ' ' || ch.char === ' ') return ch.typedChar === ' ' ? ' ' : ch.typedChar
       return ch.typedChar
     }
-    if (ch.char === ' ') return ' ' // non-breaking space renders as gap, never underlined-looking
+    if (ch.char === ' ') return ' ' // regular space; .space-char inline-block preserves visual gap
     if (ch.char === '\n') return '↵\n'
     return ch.char
   }

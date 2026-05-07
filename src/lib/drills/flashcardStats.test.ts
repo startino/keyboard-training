@@ -82,4 +82,40 @@ describe('computeFlashcardStats', () => {
     })
     expect(result.accuracy).toBe(100)
   })
+
+  it('clamps accuracy to 0 when errorCount exceeds totalCards', () => {
+    const now = Date.now()
+    const result = computeFlashcardStats({
+      latencies: [],
+      totalCards: 10,
+      errorCount: 23,
+      startTime: now - 5000,
+    })
+    expect(result.accuracy).toBe(0)
+  })
+
+  it('produces exactly 100% accuracy for a perfect session', () => {
+    const now = Date.now()
+    const result = computeFlashcardStats({
+      latencies: [
+        { char: 'a', layerName: 'home', ms: 300 },
+        { char: 'b', layerName: 'home', ms: 350 },
+      ],
+      totalCards: 2,
+      errorCount: 0,
+      startTime: now - 2000,
+    })
+    expect(result.accuracy).toBe(100)
+  })
+
+  it('never returns accuracy below 0', () => {
+    const now = Date.now()
+    const result = computeFlashcardStats({
+      latencies: [],
+      totalCards: 5,
+      errorCount: 999,
+      startTime: now - 1000,
+    })
+    expect(result.accuracy).toBeGreaterThanOrEqual(0)
+  })
 })
