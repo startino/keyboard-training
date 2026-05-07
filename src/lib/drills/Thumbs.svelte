@@ -190,11 +190,12 @@
     {#if showKeyboard}
       <VirtualKeyboard {lastTypedChar} />
     {/if}
-    <p class="font-mono text-xs" style="color: #646669;">
-      press escape to go back &middot; {showKeyboard ? 'tab to hide keyboard' : 'tab to show keyboard'}
-    </p>
     {#if showEscHint}
       <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
+    {:else}
+      <p class="font-mono text-xs" style="color: #646669;">
+        press esc twice to exit &middot; {showKeyboard ? 'tab to hide keyboard' : 'tab to show keyboard'}
+      </p>
     {/if}
   </main>
 {/if}

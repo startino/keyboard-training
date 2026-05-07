@@ -304,6 +304,8 @@
     {/if}
     {#if showEscHint}
       <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
+    {:else}
+      <p class="font-mono text-xs" style="color: #646669;">press esc twice to exit</p>
     {/if}
   </main>
 {:else}

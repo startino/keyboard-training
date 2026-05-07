@@ -190,14 +190,22 @@ function extractLayers(raw: string): { name: string; bindingsRaw: string }[] {
   // Find the keymap block by locating 'keymap {' then using brace counting
   const keymapIdx = raw.search(/keymap\s*\{/)
   if (keymapIdx === -1) {
-    throw new Error('Could not find keymap block')
+    throw new Error(
+      'No keymap block found. Please upload a ZMK ".keymap" file that contains a ' +
+      '"keymap { compatible = \\"zmk,keymap\\"; ... };" devicetree block. ' +
+      'See https://zmk.dev/docs/keymaps for the expected format.'
+    )
   }
 
   const braceIdx = raw.indexOf('{', keymapIdx)
   const keymapBlock = extractBraceBlock(raw, braceIdx)
 
   if (!keymapBlock || !keymapBlock.includes('zmk,keymap')) {
-    throw new Error('Could not find keymap block with compatible = "zmk,keymap"')
+    throw new Error(
+      'The keymap block found does not look like a ZMK keymap — missing ' +
+      '"compatible = \\"zmk,keymap\\"". Make sure you are uploading a ZMK ".keymap" file. ' +
+      'See https://zmk.dev/docs/keymaps for the expected format.'
+    )
   }
 
   // Now find each layer within the keymap block - they have bindings = < ... >;
@@ -262,7 +270,10 @@ export function parseKeymap(raw: string): ParsedKeymap {
 
   const rawLayers = extractLayers(raw)
   if (rawLayers.length === 0) {
-    throw new Error('No layers found in keymap file')
+    throw new Error(
+      'No key layers found in the keymap. Expected at least one layer with a "bindings = < ... >;" block inside the keymap. ' +
+      'See https://zmk.dev/docs/keymaps for the expected format.'
+    )
   }
 
   for (const rawLayer of rawLayers) {

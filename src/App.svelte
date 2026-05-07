@@ -3,7 +3,7 @@
   import Flashcards from './lib/drills/Flashcards.svelte'
   import Thumbs from './lib/drills/Thumbs.svelte'
   import ChatProse from './lib/drills/ChatProse.svelte'
-  import { getLastSession } from './lib/stats'
+  import { getLastSession, type SessionStats } from './lib/stats'
 
   interface DrillInfo {
     id: 'flashcards' | 'thumbs' | 'chat'
@@ -31,12 +31,26 @@
 
   let activeDrill: 'flashcards' | 'thumbs' | 'chat' | null = $state(null)
 
+  // Snapshotted on every return to home so the stats panel always reflects the
+  // most recent completed session even if Svelte patches the home block in place.
+  let lastSessions = $state<Record<string, SessionStats | null>>({
+    flashcards: getLastSession('flashcards'),
+    thumbs: getLastSession('thumbs'),
+    chat: getLastSession('chat'),
+  })
+
   function handleClick(drillId: 'flashcards' | 'thumbs' | 'chat') {
     activeDrill = drillId
   }
 
   function handleBack() {
     activeDrill = null
+    // Refresh snapshots so the home screen shows stats from the just-completed session
+    lastSessions = {
+      flashcards: getLastSession('flashcards'),
+      thumbs: getLastSession('thumbs'),
+      chat: getLastSession('chat'),
+    }
   }
 
   function formatWpm(wpm: number): string {
@@ -69,7 +83,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
       {#each drills as drill}
-        {@const lastSession = getLastSession(drill.id)}
+        {@const lastSession = lastSessions[drill.id]}
         <button
           onclick={() => handleClick(drill.id)}
           class="bg-card rounded-xl p-8 text-left hover:ring-2 hover:ring-accent transition-all cursor-pointer"
