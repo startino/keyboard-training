@@ -7,9 +7,11 @@
 
   interface Props {
     onBack: () => void
+    fontSizePx?: number
+    targetWpm?: number
   }
 
-  let { onBack }: Props = $props()
+  let { onBack, fontSizePx = 20, targetWpm = 0 }: Props = $props()
 
   const COMMON_WORDS = [
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'it',
@@ -168,10 +170,13 @@
   {lastTypedChar}
   {lastTypedToken}
   onKey={handleKey}
+  {targetWpm}
+  onPause={() => engine.pause()}
+  onResume={() => engine.resume()}
 >
   {#snippet body()}
     <div class="w-full max-w-3xl">
-      <TypingDisplay {chars} {cursor} />
+      <TypingDisplay {chars} {cursor} {fontSizePx} />
     </div>
   {/snippet}
 </DrillShell>

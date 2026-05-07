@@ -3,8 +3,11 @@
   import Flashcards from './lib/drills/Flashcards.svelte'
   import Thumbs from './lib/drills/Thumbs.svelte'
   import ChatProse from './lib/drills/ChatProse.svelte'
-  import { getLastSession, type SessionStats } from './lib/stats'
+  import SettingsPanel from './lib/components/SettingsPanel.svelte'
+  import Sparkline from './lib/components/Sparkline.svelte'
+  import { getLastSession, getRecentSessions, type SessionStats } from './lib/stats'
   import { getWeakestKeys } from './lib/keyStats.svelte'
+  import { settings } from './lib/settings.svelte'
 
   interface DrillInfo {
     id: 'flashcards' | 'thumbs' | 'chat'
@@ -31,6 +34,7 @@
   ]
 
   let activeDrill: 'flashcards' | 'thumbs' | 'chat' | null = $state(null)
+  let showSettings = $state(false)
 
   // Snapshotted on every return to home so the stats panel always reflects the
   // most recent completed session even if Svelte patches the home block in place.
@@ -38,6 +42,12 @@
     flashcards: getLastSession('flashcards'),
     thumbs: getLastSession('thumbs'),
     chat: getLastSession('chat'),
+  })
+
+  let recentSessions = $state<Record<string, SessionStats[]>>({
+    flashcards: getRecentSessions('flashcards', 20),
+    thumbs: getRecentSessions('thumbs', 20),
+    chat: getRecentSessions('chat', 20),
   })
 
   function handleClick(drillId: 'flashcards' | 'thumbs' | 'chat') {
@@ -54,6 +64,11 @@
       flashcards: getLastSession('flashcards'),
       thumbs: getLastSession('thumbs'),
       chat: getLastSession('chat'),
+    }
+    recentSessions = {
+      flashcards: getRecentSessions('flashcards', 20),
+      thumbs: getRecentSessions('thumbs', 20),
+      chat: getRecentSessions('chat', 20),
     }
     weakKeys = getWeakestKeys(5, 10)
   }
@@ -77,18 +92,34 @@
 </svelte:head>
 
 {#if activeDrill === 'flashcards'}
-  <Flashcards onBack={handleBack} />
+  <Flashcards onBack={handleBack} targetWpm={settings.targetWpm} />
 {:else if activeDrill === 'thumbs'}
-  <Thumbs onBack={handleBack} />
+  <Thumbs onBack={handleBack} fontSizePx={settings.fontSizePx} targetWpm={settings.targetWpm} />
 {:else if activeDrill === 'chat'}
-  <ChatProse onBack={handleBack} />
+  <ChatProse onBack={handleBack} fontSizePx={settings.fontSizePx} targetWpm={settings.targetWpm} />
 {:else}
   <main class="min-h-screen bg-bg text-text font-mono flex flex-col items-center justify-center px-4 gap-12">
+    <!-- Settings gear button -->
+    <button
+      onclick={() => (showSettings = !showSettings)}
+      class="fixed top-4 right-4 font-mono text-lg px-2 py-1 rounded transition-colors"
+      style={showSettings
+        ? 'color: #e2b714; background: transparent; border: none; cursor: pointer;'
+        : 'color: #646669; background: transparent; border: none; cursor: pointer;'}
+      aria-label="Open settings"
+      title="Settings"
+    >⚙</button>
+
+    {#if showSettings}
+      <SettingsPanel onClose={() => (showSettings = false)} />
+    {/if}
+
     <h1 class="text-4xl font-bold text-accent">Keyboard Training</h1>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
       {#each drills as drill}
         {@const lastSession = lastSessions[drill.id]}
+        {@const sessions = recentSessions[drill.id]}
         <button
           onclick={() => handleClick(drill.id)}
           class="bg-card rounded-xl p-8 text-left hover:ring-2 hover:ring-accent transition-all cursor-pointer"
@@ -103,6 +134,10 @@
               <span>{formatAccuracy(lastSession.accuracy)}</span>
             </div>
           {/if}
+          <!-- Sparkline: pointer-events-none so it doesn't steal click -->
+          <div class="pointer-events-none mt-2">
+            <Sparkline {sessions} drillId={drill.id} />
+          </div>
         </button>
       {/each}
     </div>

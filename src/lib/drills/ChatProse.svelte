@@ -5,12 +5,42 @@
   import { saveSession } from '../stats'
   import { sentences } from '../corpus/chat'
   import { recordKeystroke } from '../keyStats.svelte'
+  import { normalizeCustomText } from './chatProseHelpers'
 
   interface Props {
     onBack: () => void
+    fontSizePx?: number
+    targetWpm?: number
   }
 
-  let { onBack }: Props = $props()
+  let { onBack, fontSizePx = 20, targetWpm = 0 }: Props = $props()
+
+  const CUSTOM_PROSE_KEY = 'kbd-training:customprose'
+
+  function loadStoredCustomText(): string | null {
+    try {
+      const v = localStorage.getItem(CUSTOM_PROSE_KEY)
+      return v && v.trim() ? v : null
+    } catch {
+      return null
+    }
+  }
+
+  function saveCustomText(t: string): void {
+    try {
+      localStorage.setItem(CUSTOM_PROSE_KEY, t)
+    } catch {
+      // ignore
+    }
+  }
+
+  function clearStoredCustomText(): void {
+    try {
+      localStorage.removeItem(CUSTOM_PROSE_KEY)
+    } catch {
+      // ignore
+    }
+  }
 
   function generateText(): string {
     const picked: string[] = []
@@ -25,7 +55,16 @@
     return picked.join(' ')
   }
 
-  const initialText = generateText()
+  // Custom text state
+  let customText = $state<string | null>(loadStoredCustomText())
+  let showCustomPanel = $state(false)
+  let customDraft = $state('')
+
+  function buildInitialText(): string {
+    return customText ?? generateText()
+  }
+
+  const initialText = buildInitialText()
   let text = $state(initialText)
   let engine = $state(new TypingEngine(initialText))
   let done = $state(false)
@@ -40,6 +79,9 @@
   let lastCharPressTime = $state(0)
 
   function handleKey(e: KeyboardEvent) {
+    // Block keypresses while custom panel is open
+    if (showCustomPanel) return
+
     const now = Date.now()
     // Track errors and record per-key stats before engine processes keypress
     const cursorPos = engine.getCursor()
@@ -112,6 +154,43 @@
   })
 
   function restart() {
+    // In custom mode, replay same text; otherwise generate new
+    text = customText ?? generateText()
+    engine = new TypingEngine(text)
+    done = false
+    errorChars = new Map()
+    lastCharPressTime = 0
+  }
+
+  function openCustomPanel() {
+    customDraft = customText ?? ''
+    showCustomPanel = true
+  }
+
+  function applyCustomText() {
+    const normalized = normalizeCustomText(customDraft)
+    if (!normalized) {
+      // Empty/whitespace — treat as cancel
+      showCustomPanel = false
+      return
+    }
+    customText = normalized
+    saveCustomText(normalized)
+    text = normalized
+    engine = new TypingEngine(normalized)
+    done = false
+    errorChars = new Map()
+    lastCharPressTime = 0
+    showCustomPanel = false
+  }
+
+  function cancelCustomPanel() {
+    showCustomPanel = false
+  }
+
+  function clearCustomText() {
+    customText = null
+    clearStoredCustomText()
     text = generateText()
     engine = new TypingEngine(text)
     done = false
@@ -134,10 +213,72 @@
   {lastTypedChar}
   {lastTypedToken}
   onKey={handleKey}
+  onPause={() => engine.pause()}
+  onResume={() => engine.resume()}
+  {targetWpm}
 >
   {#snippet body()}
-    <div class="w-full max-w-3xl">
-      <TypingDisplay {chars} {cursor} />
+    <div class="w-full max-w-3xl relative">
+      <!-- Custom text button / indicator (top-right) -->
+      <div class="absolute -top-8 right-0 flex items-center gap-2" style="z-index: 10;">
+        {#if customText}
+          <span class="font-mono text-xs" style="color: #e2b714;">custom</span>
+          <button
+            onclick={clearCustomText}
+            class="font-mono text-xs px-1 rounded"
+            style="color: #646669; background: transparent; border: none; cursor: pointer;"
+            title="Clear custom text"
+            aria-label="Clear custom text"
+          >×</button>
+        {:else}
+          <button
+            onclick={openCustomPanel}
+            class="font-mono text-xs px-2 py-1 rounded border transition-colors"
+            style="color: #646669; border-color: #646669; background: transparent; cursor: pointer;"
+            title="Paste your own text to drill"
+          >✎ custom text</button>
+        {/if}
+      </div>
+
+      <TypingDisplay {chars} {cursor} {fontSizePx} />
+
+      <!-- Custom text input panel -->
+      {#if showCustomPanel}
+        <div
+          class="absolute inset-0 flex flex-col gap-3 rounded-lg p-4"
+          style="background: #2c2e31; z-index: 20;"
+        >
+          <label for="custom-prose-textarea" class="font-mono text-xs" style="color: #646669;">
+            paste your paragraph:
+          </label>
+          <!-- svelte-ignore a11y_autofocus -->
+          <textarea
+            id="custom-prose-textarea"
+            autofocus
+            bind:value={customDraft}
+            class="font-mono text-sm rounded p-2 resize-none"
+            style="background: #323437; color: #d1d0c5; border: 1px solid #646669; min-height: 120px; outline: none;"
+            placeholder="Paste text here…"
+            onkeydown={(e) => {
+              // Allow Esc to cancel without bubbling to DrillShell
+              if (e.key === 'Escape') { e.stopPropagation(); cancelCustomPanel() }
+              // Allow Enter inside textarea (don't submit)
+            }}
+          ></textarea>
+          <div class="flex gap-2">
+            <button
+              onclick={applyCustomText}
+              class="font-mono text-xs px-3 py-1 rounded"
+              style="background: #e2b714; color: #323437; border: none; cursor: pointer;"
+            >Use this text</button>
+            <button
+              onclick={cancelCustomPanel}
+              class="font-mono text-xs px-3 py-1 rounded"
+              style="background: #646669; color: #d1d0c5; border: none; cursor: pointer;"
+            >Cancel</button>
+          </div>
+        </div>
+      {/if}
     </div>
   {/snippet}
 </DrillShell>

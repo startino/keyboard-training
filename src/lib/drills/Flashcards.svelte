@@ -9,9 +9,10 @@
 
   interface Props {
     onBack: () => void
+    targetWpm?: number
   }
 
-  let { onBack }: Props = $props()
+  let { onBack, targetWpm = 0 }: Props = $props()
 
   const FINGER_LABELS: Record<string, string> = {
     LP: 'left pinky',
@@ -259,6 +260,7 @@
     targetChar={currentCard?.char ?? null}
     onKey={handleKey}
     singleEscOnDone={true}
+    {targetWpm}
   >
     {#snippet body()}
       <div class="relative w-full flex flex-col items-center gap-6">

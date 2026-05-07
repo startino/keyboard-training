@@ -26,6 +26,8 @@ export class TypingEngine {
   })
   private _onComplete?: () => void
   private _onError?: (index: number, expected: string, typed: string) => void
+  private _paused = $state(false)
+  private _pausedAtMs: number | null = null
 
   constructor(text: string) {
     this.state = this.buildState(text)
@@ -57,8 +59,31 @@ export class TypingEngine {
     this._onError = cb
   }
 
+  get isPaused(): boolean {
+    return this._paused
+  }
+
+  /** Freeze timing. Subsequent keypresses are ignored until resume(). */
+  pause(): void {
+    if (this._paused || this.state.startTime === null) return
+    this._paused = true
+    this._pausedAtMs = Date.now() - this.state.startTime
+  }
+
+  /** Resume timing from where we paused. */
+  resume(): void {
+    if (!this._paused || this._pausedAtMs === null) {
+      this._paused = false
+      return
+    }
+    this.state.startTime = Date.now() - this._pausedAtMs
+    this._pausedAtMs = null
+    this._paused = false
+  }
+
   handleKeypress(key: string): void {
     if (this.isComplete()) return
+    if (this._paused) return
 
     // Backspace
     if (key === 'Backspace') {

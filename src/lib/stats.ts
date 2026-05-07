@@ -58,3 +58,7 @@ export function getLastSession(drillId: string): SessionStats | null {
   const sessions = getSessions(drillId)
   return sessions.length > 0 ? sessions[0] : null
 }
+
+export function getRecentSessions(drillId: string, n: number = 20): SessionStats[] {
+  return getSessions(drillId).slice(0, n)
+}

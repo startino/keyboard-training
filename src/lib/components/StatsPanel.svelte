@@ -10,11 +10,14 @@
     duration: number
     errorCount: number
     extraStats?: ExtraStat[]
+    targetWpm?: number
     onRestart: () => void
     onBack: () => void
   }
 
-  let { wpm, accuracy, duration, errorCount, extraStats, onRestart, onBack }: Props = $props()
+  let { wpm, accuracy, duration, errorCount, extraStats, targetWpm = 0, onRestart, onBack }: Props = $props()
+
+  const wpmColor = $derived(wpm > 0 && targetWpm > 0 && wpm >= targetWpm ? '#4caf50' : '#e2b714')
 
   function formatDuration(seconds: number): string {
     const mins = Math.floor(seconds / 60)
@@ -26,7 +29,7 @@
 <div class="stats-overlay">
   <div class="stats-panel">
     <div class="primary-stat">
-      <span class="wpm-value">{Math.round(wpm)}</span>
+      <span class="wpm-value" style:color={wpmColor}>{Math.round(wpm)}</span>
       <span class="wpm-label">wpm</span>
     </div>
 
@@ -92,9 +95,9 @@
   .wpm-value {
     font-size: 72px;
     font-weight: 700;
-    color: #e2b714;
     display: block;
     line-height: 1;
+    transition: color 0.2s;
   }
 
   .wpm-label {

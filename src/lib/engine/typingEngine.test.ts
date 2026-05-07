@@ -165,6 +165,34 @@ describe('TypingEngine', () => {
     expect(engine.getCursor()).toBe(5) // unchanged
   })
 
+  it('should ignore keystrokes while paused', () => {
+    // Start the engine by typing one char first (sets startTime)
+    engine.handleKeypress('h')
+    expect(engine.getCursor()).toBe(1)
+
+    engine.pause()
+    expect(engine.isPaused).toBe(true)
+
+    // Typing while paused should have no effect
+    engine.handleKeypress('e')
+    expect(engine.getCursor()).toBe(1)
+
+    engine.resume()
+    expect(engine.isPaused).toBe(false)
+
+    // After resume, typing works again
+    engine.handleKeypress('e')
+    expect(engine.getCursor()).toBe(2)
+  })
+
+  it('pause/resume should not corrupt timing when startTime is null', () => {
+    // Pausing before any keypress (no startTime) should be a no-op
+    engine.pause()
+    expect(engine.isPaused).toBe(false) // no startTime → pause ignored
+    engine.resume()
+    expect(engine.isPaused).toBe(false)
+  })
+
   it('should return 100% accuracy when nothing typed', () => {
     expect(engine.getAccuracy()).toBe(100)
   })

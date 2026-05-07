@@ -35,6 +35,12 @@
     /** When true (Flashcards behaviour), a single Esc on the stats panel
      *  immediately exits instead of requiring double-tap. Default: false. */
     singleEscOnDone?: boolean
+    /** Passed to StatsPanel to color WPM green when target is met. */
+    targetWpm?: number
+    /** Called when the tab becomes hidden — drill should pause its engine. */
+    onPause?: () => void
+    /** Called when the tab becomes visible again — drill should resume its engine. */
+    onResume?: () => void
   }
 
   let {
@@ -53,6 +59,9 @@
     targetChar = null,
     onKey,
     singleEscOnDone = false,
+    targetWpm = 0,
+    onPause,
+    onResume,
   }: Props = $props()
 
   let showKeyboard = $state(false)
@@ -131,9 +140,27 @@
       onBack()
     }
   }
+
+  function handleVisibilityChange() {
+    // Reset double-tap Esc state on every visibility change to avoid
+    // the known issue where alt-tabbing between two Esc taps drops the user out.
+    escPendingUntil = 0
+    showEscHint = false
+    if (escHintTimeout) {
+      clearTimeout(escHintTimeout)
+      escHintTimeout = null
+    }
+
+    if (document.visibilityState === 'hidden') {
+      onPause?.()
+    } else {
+      onResume?.()
+    }
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
+<svelte:document onvisibilitychange={handleVisibilityChange} />
 
 {#if sessionDone}
   <StatsPanel
@@ -142,6 +169,7 @@
     {duration}
     {errorCount}
     {extraStats}
+    {targetWpm}
     onRestart={handleRestart}
     {onBack}
   />
