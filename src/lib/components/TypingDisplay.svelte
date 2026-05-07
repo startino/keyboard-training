@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { EngineChar } from '../engine/typingEngine'
+  import type { EngineChar } from '../engine/typingEngine.svelte'
 
   interface Props {
     chars: EngineChar[]
@@ -40,6 +40,8 @@
         return '#ca4754'
       case 'current':
         return '#646669'
+      default:
+        return '#d1d0c5'
     }
   }
 

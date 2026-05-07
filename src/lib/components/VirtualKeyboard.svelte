@@ -5,11 +5,15 @@
 
   interface Props {
     lastTypedChar: string | null
+    /** Incrementing counter — one per keystroke. Lets the vkbd re-pulse even
+     *  when the same character is typed twice in a row (value-change alone
+     *  would miss the second press). */
+    lastTypedToken?: number
     forcedLayer?: string | null
     targetChar?: string | null
   }
 
-  let { lastTypedChar, forcedLayer = null, targetChar = null }: Props = $props()
+  let { lastTypedChar, lastTypedToken = 0, forcedLayer = null, targetChar = null }: Props = $props()
 
   const keymap = $derived(getKeymap())
 
@@ -18,6 +22,9 @@
   $effect(() => {
     if (forcedLayer) return
     if (!lastTypedChar) return
+    // Reference lastTypedToken so this re-runs on every keystroke, even
+    // repeated same-char presses.
+    void lastTypedToken
     const char = lastTypedChar
     for (let i = keymap.layers.length - 1; i >= 0; i--) {
       const layer = keymap.layers[i]
@@ -61,6 +68,9 @@
 
   $effect(() => {
     if (!lastTypedChar) return
+    // Depend on lastTypedToken so the effect re-fires for every keystroke,
+    // including repeated same-char presses (e.g. "tt").
+    void lastTypedToken
     const char = lastTypedChar
     if (!activeLayer) return
     const id = findKeyIdForChar(activeLayer, char)
@@ -152,7 +162,9 @@
 
   function layerHoldLabel(hold: string): string | null {
     const m = hold.match(/^LAYER_(\d+)$/)
-    return m ? `→${m[1]}` : null
+    // Space between arrow and digit prevents kerning from merging them into
+    // something that reads as a negative number at small font sizes.
+    return m ? `→ ${m[1]}` : null
   }
 
   // Geometry
@@ -321,16 +333,28 @@
         </g>
       {/each}
 
-      <ellipse
-        cx={trackpadCx}
-        cy={trackpadCy}
-        rx="40"
-        ry="30"
+      <!-- Trackpad indicator: rounded rect with muted label -->
+      <rect
+        x={trackpadCx - 40}
+        y={trackpadCy - 28}
+        width="80"
+        height="56"
+        rx="10"
+        ry="10"
         fill="transparent"
         stroke="#3a3c3f"
         stroke-width="1"
-        stroke-dasharray="3 3"
+        opacity="0.6"
       />
+      <text
+        x={trackpadCx}
+        y={trackpadCy + 4}
+        text-anchor="middle"
+        font-family="'Roboto Mono', monospace"
+        font-size="9"
+        fill="#3a3c3f"
+        opacity="0.8"
+      >trackpad</text>
     {/if}
   </svg>
 </div>

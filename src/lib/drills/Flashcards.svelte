@@ -4,6 +4,7 @@
   import StatsPanel from '../components/StatsPanel.svelte'
   import VirtualKeyboard from '../components/VirtualKeyboard.svelte'
   import { saveSession } from '../stats'
+  import { computeFlashcardStats } from './flashcardStats'
 
   interface Props {
     onBack: () => void
@@ -81,6 +82,7 @@
   let startTime = $state(0)
   let showKeyboard = $state(false)
   let lastTypedChar = $state<string | null>(null)
+  let lastTypedToken = $state(0)
   let escPendingUntil = $state(0)
   let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
   let showEscHint = $state(false)
@@ -112,50 +114,15 @@
   }
 
   function saveDrillSession() {
-    const duration = (Date.now() - startTime) / 1000
-    const layerLatencies = new Map<string, number[]>()
-    const charLatencies = new Map<string, number[]>()
-
-    for (const l of latencies) {
-      const layerArr = layerLatencies.get(l.layerName) || []
-      layerArr.push(l.ms)
-      layerLatencies.set(l.layerName, layerArr)
-
-      const charArr = charLatencies.get(l.char) || []
-      charArr.push(l.ms)
-      charLatencies.set(l.char, charArr)
-    }
-
-    const extraStats: Record<string, string | number> = {}
-
-    // Median latency per layer
-    for (const [layer, times] of layerLatencies) {
-      times.sort((a, b) => a - b)
-      const median = times[Math.floor(times.length / 2)]
-      extraStats[`${layer} median`] = `${Math.round(median)}ms`
-    }
-
-    // Error count
-    extraStats['errors'] = errorCount
-
-    // Slowest 3 characters
-    const avgByChar: { char: string; avg: number }[] = []
-    for (const [char, times] of charLatencies) {
-      const avg = times.reduce((s, t) => s + t, 0) / times.length
-      avgByChar.push({ char, avg })
-    }
-    avgByChar.sort((a, b) => b.avg - a.avg)
-    const slowest = avgByChar.slice(0, 3).map((c) => `${c.char} (${Math.round(c.avg)}ms)`)
-    extraStats['slowest chars'] = slowest.join(', ')
-
+    const stats = computeFlashcardStats({ latencies, totalCards, errorCount, startTime })
     saveSession({
       timestamp: Date.now(),
       wpm: 0,
-      accuracy: totalCards > 0 ? ((totalCards - errorCount) / totalCards) * 100 : 100,
-      duration,
-      errorCount,
+      accuracy: stats.accuracy,
+      duration: stats.duration,
+      errorCount: stats.errorCount,
       drillId: 'flashcards',
-      extraStats,
+      extraStats: stats.extraStatsRecord,
     })
   }
 
@@ -224,6 +191,7 @@
 
     e.preventDefault()
     lastTypedChar = e.key
+    lastTypedToken++
     const now = Date.now()
     const latency = now - cardShowTime
 
@@ -234,16 +202,14 @@
       showFlash('correct')
       setTimeout(() => advanceCard(), 150)
     } else {
-      // Wrong - double weight, re-present
+      // Wrong - double weight, re-present. cardShowTime is NOT reset here;
+      // latency = time from card shown to first correct keystroke (wrong
+      // attempts are part of that reaction window).
       errorCount++
       wrongCount++
       currentCard.weight *= 2
       showFlash('incorrect')
       triggerShake()
-      // After flash, re-show same card with new timing
-      setTimeout(() => {
-        cardShowTime = Date.now()
-      }, 300)
     }
   }
 
@@ -289,41 +255,13 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if sessionDone}
+  {@const sessionStats = computeFlashcardStats({ latencies, totalCards, errorCount, startTime })}
   <StatsPanel
     wpm={0}
-    accuracy={totalCards > 0 ? ((totalCards - errorCount) / totalCards) * 100 : 100}
-    duration={(Date.now() - startTime) / 1000}
-    errorCount={errorCount}
-    extraStats={(() => {
-      const layerLatencies = new Map<string, number[]>()
-      const charLatencies = new Map<string, number[]>()
-      for (const l of latencies) {
-        const layerArr = layerLatencies.get(l.layerName) || []
-        layerArr.push(l.ms)
-        layerLatencies.set(l.layerName, layerArr)
-        const charArr = charLatencies.get(l.char) || []
-        charArr.push(l.ms)
-        charLatencies.set(l.char, charArr)
-      }
-      const stats: { label: string; value: string }[] = []
-      for (const [layer, times] of layerLatencies) {
-        times.sort((a, b) => a - b)
-        const median = times[Math.floor(times.length / 2)]
-        stats.push({ label: `${layer} median`, value: `${Math.round(median)}ms` })
-      }
-      stats.push({ label: 'errors', value: String(errorCount) })
-      const avgByChar: { char: string; avg: number }[] = []
-      for (const [char, times] of charLatencies) {
-        const avg = times.reduce((s, t) => s + t, 0) / times.length
-        avgByChar.push({ char, avg })
-      }
-      avgByChar.sort((a, b) => b.avg - a.avg)
-      const slowest = avgByChar.slice(0, 3)
-      for (const s of slowest) {
-        stats.push({ label: `slowest: ${s.char}`, value: `${Math.round(s.avg)}ms` })
-      }
-      return stats
-    })()}
+    accuracy={sessionStats.accuracy}
+    duration={sessionStats.duration}
+    errorCount={sessionStats.errorCount}
+    extraStats={sessionStats.extraStatsList}
     onRestart={restart}
     {onBack}
   />
@@ -350,7 +288,7 @@
     </div>
 
     {#if showKeyboard}
-      <VirtualKeyboard {lastTypedChar} forcedLayer={currentCard.layerName} targetChar={currentCard.char} />
+      <VirtualKeyboard {lastTypedChar} {lastTypedToken} forcedLayer={currentCard.layerName} targetChar={currentCard.char} />
     {:else}
       <p class="font-mono text-xs" style="color: #646669;">tab to show keyboard</p>
     {/if}

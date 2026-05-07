@@ -50,6 +50,7 @@
   let lastKeypressTime = $state(0)
   let showKeyboard = $state(false)
   let lastTypedChar = $state<string | null>(null)
+  let lastTypedToken = $state(0)
   let escPendingUntil = $state(0)
   let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
   let showEscHint = $state(false)
@@ -97,6 +98,7 @@
 
     if (e.key.length === 1) {
       lastTypedChar = e.key
+      lastTypedToken++
     }
 
     // Track timing for thumb keys (space, shift inferred from capitals)
@@ -199,7 +201,7 @@
       <TypingDisplay {chars} {cursor} />
     </div>
     {#if showKeyboard}
-      <VirtualKeyboard {lastTypedChar} />
+      <VirtualKeyboard {lastTypedChar} {lastTypedToken} />
     {/if}
     {#if showEscHint}
       <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
