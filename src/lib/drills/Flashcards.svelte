@@ -1,8 +1,7 @@
 <script lang="ts">
   import { getKeymap } from '../keymap/store.svelte'
   import { ZMK_CHAR_MAP } from '../keymap/zmkCharMap'
-  import StatsPanel from '../components/StatsPanel.svelte'
-  import VirtualKeyboard from '../components/VirtualKeyboard.svelte'
+  import DrillShell from '../components/DrillShell.svelte'
   import { saveSession } from '../stats'
   import { computeFlashcardStats } from './flashcardStats'
 
@@ -80,12 +79,8 @@
   let latencies = $state<{ char: string; layerName: string; ms: number }[]>([])
   let errorCount = $state(0)
   let startTime = $state(0)
-  let showKeyboard = $state(false)
   let lastTypedChar = $state<string | null>(null)
   let lastTypedToken = $state(0)
-  let escPendingUntil = $state(0)
-  let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
-  let showEscHint = $state(false)
   let wrongCount = $state(0)
   let shaking = $state(false)
   let shakeTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
@@ -144,45 +139,7 @@
     return typed === target
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      if (sessionDone) {
-        onBack()
-        return
-      }
-      const now = Date.now()
-      if (now < escPendingUntil) {
-        if (escHintTimeout) clearTimeout(escHintTimeout)
-        showEscHint = false
-        onBack()
-        return
-      }
-      escPendingUntil = now + 500
-      showEscHint = true
-      if (escHintTimeout) clearTimeout(escHintTimeout)
-      escHintTimeout = setTimeout(() => {
-        showEscHint = false
-      }, 1000)
-      return
-    }
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      showKeyboard = !showKeyboard
-      return
-    }
-
-    // C2: Block browser shortcuts (Ctrl/Cmd/Alt combos) but allow refresh and devtools
-    if (e.ctrlKey || e.metaKey || e.altKey) {
-      const key = e.key.toLowerCase()
-      const isRefresh = (e.ctrlKey || e.metaKey) && (key === 'r')
-      const isDevtools = (e.ctrlKey || e.metaKey) && (key === 'i' || key === 'j' || key === 'u')
-      if (!isRefresh && !isDevtools) {
-        e.preventDefault()
-      }
-      return
-    }
-
-    if (sessionDone) return
+  function handleKey(e: KeyboardEvent) {
     if (!currentCard) return
 
     // Skip non-character keys (arrows, modifiers, fn keys, etc.)
@@ -250,59 +207,58 @@
       startTime = Date.now()
     }
   })
+
+  const sessionStats = $derived(
+    sessionDone
+      ? computeFlashcardStats({ latencies, totalCards, errorCount, startTime })
+      : null
+  )
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if sessionDone}
-  {@const sessionStats = computeFlashcardStats({ latencies, totalCards, errorCount, startTime })}
-  <StatsPanel
-    wpm={0}
-    accuracy={sessionStats.accuracy}
-    duration={sessionStats.duration}
-    errorCount={sessionStats.errorCount}
-    extraStats={sessionStats.extraStatsList}
-    onRestart={restart}
-    {onBack}
-  />
-{:else if currentCard}
-  <main class="min-h-screen bg-bg flex flex-col items-center justify-center gap-8 px-4">
-    <div
-      class="flex flex-col items-center gap-6 transition-colors duration-150"
-      class:fc-shake={shaking}
-      style:color={flashColor || '#d1d0c5'}
-    >
-      <span class="font-mono font-bold" style="font-size: 6rem; line-height: 1;">
-        {currentCard.char}
-      </span>
-      <span class="text-sm font-mono" style="color: #646669;">
-        {currentCard.layerName} &middot; {FINGER_LABELS[currentCard.finger] || currentCard.finger}
-      </span>
-      {#if wrongCount > 0}
-        <span class="font-mono text-sm" style="color: #ca4754;">× {wrongCount}</span>
-      {/if}
-    </div>
-
-    <div class="font-mono text-sm" style="color: #646669;">
-      {completed + 1} / {totalCards}
-    </div>
-
-    {#if showKeyboard}
-      <VirtualKeyboard {lastTypedChar} {lastTypedToken} forcedLayer={currentCard.layerName} targetChar={currentCard.char} />
-    {:else}
-      <p class="font-mono text-xs" style="color: #646669;">tab to show keyboard</p>
-    {/if}
-    {#if showEscHint}
-      <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
-    {:else}
-      <p class="font-mono text-xs" style="color: #646669;">press esc twice to exit</p>
-    {/if}
-  </main>
-{:else}
+{#if cards.length === 0}
   <main class="min-h-screen bg-bg flex flex-col items-center justify-center px-4">
     <p class="font-mono text-text/70">No flashcard characters found in keymap.</p>
     <button class="mt-4 font-mono text-accent underline" onclick={onBack}>Back to menu</button>
   </main>
+{:else}
+  <DrillShell
+    {onBack}
+    onRestart={restart}
+    {sessionDone}
+    wpm={0}
+    accuracy={sessionStats?.accuracy ?? 0}
+    duration={sessionStats?.duration ?? 0}
+    errorCount={sessionStats?.errorCount ?? 0}
+    extraStats={sessionStats?.extraStatsList ?? []}
+    {lastTypedChar}
+    {lastTypedToken}
+    forcedLayer={currentCard?.layerName ?? null}
+    targetChar={currentCard?.char ?? null}
+    onKey={handleKey}
+    singleEscOnDone={true}
+  >
+    {#snippet body()}
+      <div
+        class="flex flex-col items-center gap-6 transition-colors duration-150"
+        class:fc-shake={shaking}
+        style:color={flashColor || '#d1d0c5'}
+      >
+        <span class="font-mono font-bold" style="font-size: 6rem; line-height: 1;">
+          {currentCard?.char ?? ''}
+        </span>
+        <span class="text-sm font-mono" style="color: #646669;">
+          {currentCard?.layerName ?? ''} &middot; {FINGER_LABELS[currentCard?.finger ?? ''] || (currentCard?.finger ?? '')}
+        </span>
+        {#if wrongCount > 0}
+          <span class="font-mono text-sm" style="color: #ca4754;">× {wrongCount}</span>
+        {/if}
+      </div>
+
+      <div class="font-mono text-sm" style="color: #646669;">
+        {completed + 1} / {totalCards}
+      </div>
+    {/snippet}
+  </DrillShell>
 {/if}
 
 <style>

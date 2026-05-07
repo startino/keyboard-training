@@ -1,8 +1,7 @@
 <script lang="ts">
   import { TypingEngine } from '../engine/typingEngine.svelte'
   import TypingDisplay from '../components/TypingDisplay.svelte'
-  import StatsPanel from '../components/StatsPanel.svelte'
-  import VirtualKeyboard from '../components/VirtualKeyboard.svelte'
+  import DrillShell from '../components/DrillShell.svelte'
   import { saveSession } from '../stats'
 
   interface Props {
@@ -48,52 +47,10 @@
   // Track per-keypress timing for thumb analysis
   let keypressTimes = $state<{ key: string; time: number; index: number }[]>([])
   let lastKeypressTime = $state(0)
-  let showKeyboard = $state(false)
   let lastTypedChar = $state<string | null>(null)
   let lastTypedToken = $state(0)
-  let escPendingUntil = $state(0)
-  let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
-  let showEscHint = $state(false)
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-      if (done) {
-        onBack()
-        return
-      }
-      const nowEsc = Date.now()
-      if (nowEsc < escPendingUntil) {
-        if (escHintTimeout) clearTimeout(escHintTimeout)
-        showEscHint = false
-        onBack()
-        return
-      }
-      escPendingUntil = nowEsc + 500
-      showEscHint = true
-      if (escHintTimeout) clearTimeout(escHintTimeout)
-      escHintTimeout = setTimeout(() => {
-        showEscHint = false
-      }, 1000)
-      return
-    }
-    if (e.key === 'Tab') {
-      e.preventDefault()
-      showKeyboard = !showKeyboard
-      return
-    }
-    // C2: Block browser shortcuts (Ctrl/Cmd/Alt combos), allow refresh and devtools
-    if (e.ctrlKey || e.metaKey || e.altKey) {
-      const key = e.key.toLowerCase()
-      const isRefresh = (e.ctrlKey || e.metaKey) && key === 'r'
-      const isDevtools = (e.ctrlKey || e.metaKey) && (key === 'i' || key === 'j' || key === 'u')
-      if (!isRefresh && !isDevtools) {
-        e.preventDefault()
-      }
-      return
-    }
-
-    if (done) return
-
+  function handleKey(e: KeyboardEvent) {
     const now = Date.now()
 
     if (e.key.length === 1) {
@@ -133,7 +90,6 @@
     }
 
     // Detect shift usage: when typing a capital letter, the previous keypress involved shift
-    const textChars = text.split('')
     for (let i = 0; i < keypressTimes.length; i++) {
       const kp = keypressTimes[i]
       if (kp.key.length === 1 && kp.key >= 'A' && kp.key <= 'Z') {
@@ -141,14 +97,14 @@
       }
     }
 
-    const extraStats: Record<string, string | number> = {}
+    const extraStats: { label: string; value: string }[] = []
     if (spaceTimes.length > 0) {
       const avgSpace = spaceTimes.reduce((s, t) => s + t, 0) / spaceTimes.length
-      extraStats['space avg'] = `${Math.round(avgSpace)}ms`
+      extraStats.push({ label: 'space avg', value: `${Math.round(avgSpace)}ms` })
     }
     if (shiftTimes.length > 0) {
       const avgShift = shiftTimes.reduce((s, t) => s + t, 0) / shiftTimes.length
-      extraStats['shift avg'] = `${Math.round(avgShift)}ms`
+      extraStats.push({ label: 'shift avg', value: `${Math.round(avgShift)}ms` })
     }
 
     return { wpm, accuracy, duration, errorCount, extraStats }
@@ -163,7 +119,7 @@
       duration,
       errorCount,
       drillId: 'thumbs',
-      extraStats,
+      extraStats: Object.fromEntries(extraStats.map(({ label, value }) => [label, value])),
     })
   }
 
@@ -180,35 +136,26 @@
     keypressTimes = []
     lastKeypressTime = 0
   }
+
+  const stats = $derived(done ? getStats() : null)
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
-
-{#if done}
-  {@const stats = getStats()}
-  <StatsPanel
-    wpm={stats.wpm}
-    accuracy={stats.accuracy}
-    duration={stats.duration}
-    errorCount={stats.errorCount}
-    extraStats={Object.entries(stats.extraStats).map(([label, value]) => ({ label, value: String(value) }))}
-    onRestart={restart}
-    {onBack}
-  />
-{:else}
-  <main class="min-h-screen bg-bg flex flex-col items-center justify-center px-4 gap-8">
+<DrillShell
+  {onBack}
+  onRestart={restart}
+  sessionDone={done}
+  wpm={stats?.wpm ?? 0}
+  accuracy={stats?.accuracy ?? 0}
+  duration={stats?.duration ?? 0}
+  errorCount={stats?.errorCount ?? 0}
+  extraStats={stats?.extraStats ?? []}
+  {lastTypedChar}
+  {lastTypedToken}
+  onKey={handleKey}
+>
+  {#snippet body()}
     <div class="w-full max-w-3xl">
       <TypingDisplay {chars} {cursor} />
     </div>
-    {#if showKeyboard}
-      <VirtualKeyboard {lastTypedChar} {lastTypedToken} />
-    {/if}
-    {#if showEscHint}
-      <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
-    {:else}
-      <p class="font-mono text-xs" style="color: #646669;">
-        press esc twice to exit &middot; {showKeyboard ? 'tab to hide keyboard' : 'tab to show keyboard'}
-      </p>
-    {/if}
-  </main>
-{/if}
+  {/snippet}
+</DrillShell>

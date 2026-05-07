@@ -1,15 +1,12 @@
-name: Deploy to GitHub Pages
+name: CI
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: write
+  pull_request:
 
 jobs:
-  deploy:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,8 +22,3 @@ jobs:
       - run: bun run check
 
       - run: bun run build
-
-      - uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
