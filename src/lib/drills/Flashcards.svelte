@@ -2,6 +2,7 @@
   import { getKeymap } from '../keymap/store.svelte'
   import { ZMK_CHAR_MAP } from '../keymap/zmkCharMap'
   import StatsPanel from '../components/StatsPanel.svelte'
+  import VirtualKeyboard from '../components/VirtualKeyboard.svelte'
   import { saveSession } from '../stats'
 
   interface Props {
@@ -78,6 +79,11 @@
   let latencies = $state<{ char: string; layerName: string; ms: number }[]>([])
   let errorCount = $state(0)
   let startTime = $state(0)
+  let showKeyboard = $state(false)
+  let lastTypedChar = $state<string | null>(null)
+  let escPendingUntil = $state(0)
+  let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
+  let showEscHint = $state(false)
 
   function pickNextCard(): FlashCard | null {
     if (cards.length === 0) return null
@@ -151,7 +157,28 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      onBack()
+      if (sessionDone) {
+        onBack()
+        return
+      }
+      const now = Date.now()
+      if (now < escPendingUntil) {
+        if (escHintTimeout) clearTimeout(escHintTimeout)
+        showEscHint = false
+        onBack()
+        return
+      }
+      escPendingUntil = now + 500
+      showEscHint = true
+      if (escHintTimeout) clearTimeout(escHintTimeout)
+      escHintTimeout = setTimeout(() => {
+        showEscHint = false
+      }, 1000)
+      return
+    }
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      showKeyboard = !showKeyboard
       return
     }
     if (sessionDone) return
@@ -159,6 +186,7 @@
     if (e.key.length !== 1) return
 
     e.preventDefault()
+    lastTypedChar = e.key
     const now = Date.now()
     const latency = now - cardShowTime
 
@@ -268,6 +296,15 @@
     <div class="font-mono text-sm" style="color: #646669;">
       {completed + 1} / {totalCards}
     </div>
+
+    {#if showKeyboard}
+      <VirtualKeyboard {lastTypedChar} forcedLayer={currentCard.layerName} />
+    {:else}
+      <p class="font-mono text-xs" style="color: #646669;">tab to show keyboard</p>
+    {/if}
+    {#if showEscHint}
+      <p class="font-mono text-xs" style="color: #e2b714;">press esc again to exit</p>
+    {/if}
   </main>
 {:else}
   <main class="min-h-screen bg-bg flex flex-col items-center justify-center px-4">

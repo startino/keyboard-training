@@ -87,6 +87,14 @@ describe('parseKeymap', () => {
     expect(keyA.hold).toBe('LGUI')
   })
 
+  it('should expose per-layer thumbs', () => {
+    const result = parseKeymap(keymapRaw)
+    for (const layer of result.layers) {
+      expect(Array.isArray(layer.thumbs)).toBe(true)
+      expect(layer.thumbs.length).toBe(6)
+    }
+  })
+
   it('should parse &lt bindings with layer hold', () => {
     const result = parseKeymap(keymapRaw)
     // Thumb keys from home layer: &lt 1 BACKSPACE
