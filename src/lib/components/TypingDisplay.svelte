@@ -134,10 +134,13 @@
     position: relative;
   }
 
-  /* Space/newline chars: never add underline decoration */
+  /* Space/newline chars: never add underline decoration; reserve a visible slot
+     so inline-block doesn't collapse the space between adjacent word atoms. */
   .space-char {
     display: inline-block;
+    min-width: 0.6em;
     text-decoration: none !important;
+    white-space: pre;
   }
 
   .incorrect-underline {
