@@ -19,6 +19,13 @@
 
   const wpmColor = $derived(wpm > 0 && targetWpm > 0 && wpm >= targetWpm ? '#4caf50' : '#e2b714')
 
+  const wpmDelta = $derived(
+    wpm > 0 && targetWpm > 0
+      ? Math.round(wpm) - targetWpm
+      : null
+  )
+  const wpmDeltaColor = $derived(wpmDelta !== null && wpmDelta >= 0 ? '#4caf50' : '#ca4754')
+
   function formatDuration(seconds: number): string {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
@@ -31,6 +38,11 @@
     <div class="primary-stat">
       <span class="wpm-value" style:color={wpmColor}>{Math.round(wpm)}</span>
       <span class="wpm-label">wpm</span>
+      {#if wpmDelta !== null}
+        <span class="wpm-delta" style:color={wpmDeltaColor}>
+          {wpmDelta >= 0 ? '+' : ''}{wpmDelta} vs target
+        </span>
+      {/if}
     </div>
 
     <div class="secondary-stats">
@@ -105,6 +117,13 @@
     color: #646669;
     text-transform: uppercase;
     letter-spacing: 2px;
+  }
+
+  .wpm-delta {
+    display: block;
+    font-size: 13px;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
   }
 
   .secondary-stats {

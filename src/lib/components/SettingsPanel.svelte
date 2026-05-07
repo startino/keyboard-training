@@ -2,6 +2,7 @@
   import {
     settings,
     updateSettings,
+    resetSettings,
     FONT_SIZE_MIN,
     FONT_SIZE_MAX,
     FONT_SIZE_STEP,
@@ -71,6 +72,28 @@
           oninput={(e) => updateSettings({ targetWpm: Number((e.target as HTMLInputElement).value) })}
           class="setting-slider"
         />
+      </div>
+
+      <!-- Default weakness bias -->
+      <div class="setting-row">
+        <label class="setting-label setting-label-row" for="weakness-bias-toggle">
+          <span>flashcards weakness bias</span>
+          <button
+            id="weakness-bias-toggle"
+            role="switch"
+            aria-checked={settings.weaknessBiasDefault}
+            onclick={() => updateSettings({ weaknessBiasDefault: !settings.weaknessBiasDefault })}
+            class="toggle-btn"
+            class:toggle-on={settings.weaknessBiasDefault}
+          >
+            {settings.weaknessBiasDefault ? 'on' : 'off'}
+          </button>
+        </label>
+      </div>
+
+      <!-- Reset to defaults -->
+      <div class="setting-row setting-row-reset">
+        <button class="reset-btn" onclick={resetSettings}>reset to defaults</button>
       </div>
     </div>
   </div>
@@ -186,5 +209,51 @@
     background: #e2b714;
     cursor: pointer;
     border: none;
+  }
+
+  .setting-label-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .toggle-btn {
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 10px;
+    border: 1px solid #646669;
+    cursor: pointer;
+    background: transparent;
+    color: #646669;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .toggle-btn.toggle-on {
+    border-color: #e2b714;
+    color: #e2b714;
+  }
+
+  .setting-row-reset {
+    padding-top: 4px;
+    border-top: 1px solid #3c3c3c;
+  }
+
+  .reset-btn {
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #646669;
+    cursor: pointer;
+    background: transparent;
+    color: #646669;
+    transition: color 0.15s, border-color 0.15s;
+    align-self: flex-start;
+  }
+
+  .reset-btn:hover {
+    color: #d1d0c5;
+    border-color: #d1d0c5;
   }
 </style>

@@ -6,6 +6,7 @@
   import { computeFlashcardStats } from './flashcardStats'
   import { recordKeystroke, getKeyStats } from '../keyStats.svelte'
   import { weaknessScore } from '../keyStats'
+  import { settings } from '../settings.svelte'
 
   interface Props {
     onBack: () => void
@@ -70,8 +71,8 @@
 
   const SESSION_LENGTH = 28
 
-  // Weighted-by-weakness toggle (default ON)
-  let useWeaknessBias = $state(true)
+  // Weighted-by-weakness toggle (default from settings)
+  let useWeaknessBias = $state(settings.weaknessBiasDefault)
 
   let cards = $state<FlashCard[]>(buildCards())
   let currentIndex = $state(0)

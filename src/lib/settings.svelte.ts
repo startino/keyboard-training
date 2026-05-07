@@ -3,11 +3,13 @@ const SETTINGS_KEY = 'kbd-training:settings'
 export interface Settings {
   fontSizePx: number
   targetWpm: number
+  weaknessBiasDefault: boolean
 }
 
 const DEFAULTS: Settings = {
   fontSizePx: 20,
   targetWpm: 60,
+  weaknessBiasDefault: true,
 }
 
 export const FONT_SIZE_MIN = 14
@@ -41,6 +43,10 @@ function loadSettings(): Settings {
         TARGET_WPM_MAX,
         TARGET_WPM_STEP,
       ),
+      weaknessBiasDefault:
+        typeof parsed.weaknessBiasDefault === 'boolean'
+          ? parsed.weaknessBiasDefault
+          : DEFAULTS.weaknessBiasDefault,
     }
   } catch {
     return { ...DEFAULTS }
@@ -66,5 +72,19 @@ export function updateSettings(patch: Partial<Settings>): void {
   if (patch.targetWpm !== undefined) {
     settings.targetWpm = clampStep(patch.targetWpm, TARGET_WPM_MIN, TARGET_WPM_MAX, TARGET_WPM_STEP)
   }
-  persistSettings({ fontSizePx: settings.fontSizePx, targetWpm: settings.targetWpm })
+  if (patch.weaknessBiasDefault !== undefined) {
+    settings.weaknessBiasDefault = patch.weaknessBiasDefault
+  }
+  persistSettings({
+    fontSizePx: settings.fontSizePx,
+    targetWpm: settings.targetWpm,
+    weaknessBiasDefault: settings.weaknessBiasDefault,
+  })
+}
+
+export function resetSettings(): void {
+  settings.fontSizePx = DEFAULTS.fontSizePx
+  settings.targetWpm = DEFAULTS.targetWpm
+  settings.weaknessBiasDefault = DEFAULTS.weaknessBiasDefault
+  persistSettings({ ...DEFAULTS })
 }
