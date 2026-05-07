@@ -4,6 +4,7 @@
   import DrillShell from '../components/DrillShell.svelte'
   import { saveSession } from '../stats'
   import { sentences } from '../corpus/chat'
+  import { recordKeystroke } from '../keyStats.svelte'
 
   interface Props {
     onBack: () => void
@@ -35,17 +36,24 @@
   let errorChars = $state<Map<string, number>>(new Map())
   let lastTypedChar = $state<string | null>(null)
   let lastTypedToken = $state(0)
+  // Track inter-keypress latency for per-key stats
+  let lastCharPressTime = $state(0)
 
   function handleKey(e: KeyboardEvent) {
-    // Track errors before handling
+    const now = Date.now()
+    // Track errors and record per-key stats before engine processes keypress
     const cursorPos = engine.getCursor()
     if (e.key.length === 1 && cursorPos < text.length) {
       const expected = text[cursorPos]
-      if (e.key !== expected) {
+      const correct = e.key === expected
+      if (!correct) {
         const count = errorChars.get(expected) || 0
         errorChars.set(expected, count + 1)
         errorChars = new Map(errorChars) // trigger reactivity
       }
+      const latencyMs = lastCharPressTime > 0 ? now - lastCharPressTime : undefined
+      recordKeystroke(expected, correct, correct ? latencyMs : undefined)
+      lastCharPressTime = now
     }
 
     if (e.key.length === 1) {
@@ -108,6 +116,7 @@
     engine = new TypingEngine(text)
     done = false
     errorChars = new Map()
+    lastCharPressTime = 0
   }
 
   const stats = $derived(done ? getStats() : null)

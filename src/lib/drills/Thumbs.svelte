@@ -3,6 +3,7 @@
   import TypingDisplay from '../components/TypingDisplay.svelte'
   import DrillShell from '../components/DrillShell.svelte'
   import { saveSession } from '../stats'
+  import { recordKeystroke } from '../keyStats.svelte'
 
   interface Props {
     onBack: () => void
@@ -49,6 +50,8 @@
   let lastKeypressTime = $state(0)
   let lastTypedChar = $state<string | null>(null)
   let lastTypedToken = $state(0)
+  // Track inter-keypress latency for per-key stats
+  let lastCharPressTime = $state(0)
 
   function handleKey(e: KeyboardEvent) {
     const now = Date.now()
@@ -64,6 +67,18 @@
         keypressTimes.push({ key: e.key, time: now - lastKeypressTime, index: engine.getCursor() })
       }
       lastKeypressTime = now
+    }
+
+    // Record per-key stat before engine processes the keypress
+    if (e.key.length === 1) {
+      const cursorPos = engine.getCursor()
+      if (cursorPos < text.length) {
+        const targetChar = text[cursorPos]
+        const correct = e.key === targetChar
+        const latencyMs = lastCharPressTime > 0 ? now - lastCharPressTime : undefined
+        recordKeystroke(targetChar, correct, correct ? latencyMs : undefined)
+        lastCharPressTime = now
+      }
     }
 
     engine.handleKeypress(e.key)
@@ -135,6 +150,7 @@
     done = false
     keypressTimes = []
     lastKeypressTime = 0
+    lastCharPressTime = 0
   }
 
   const stats = $derived(done ? getStats() : null)

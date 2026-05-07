@@ -4,6 +4,7 @@
   import Thumbs from './lib/drills/Thumbs.svelte'
   import ChatProse from './lib/drills/ChatProse.svelte'
   import { getLastSession, type SessionStats } from './lib/stats'
+  import { getWeakestKeys } from './lib/keyStats.svelte'
 
   interface DrillInfo {
     id: 'flashcards' | 'thumbs' | 'chat'
@@ -43,6 +44,9 @@
     activeDrill = drillId
   }
 
+  // Snapshot of weak keys — refreshed on return from any drill
+  let weakKeys = $state(getWeakestKeys(5, 10))
+
   function handleBack() {
     activeDrill = null
     // Refresh snapshots so the home screen shows stats from the just-completed session
@@ -51,6 +55,7 @@
       thumbs: getLastSession('thumbs'),
       chat: getLastSession('chat'),
     }
+    weakKeys = getWeakestKeys(5, 10)
   }
 
   function formatWpm(wpm: number): string {
@@ -100,6 +105,35 @@
           {/if}
         </button>
       {/each}
+    </div>
+
+    <!-- Weak keys panel -->
+    <div class="bg-card rounded-xl p-6 max-w-4xl w-full">
+      <h2 class="text-sm font-bold font-mono mb-4" style="color: #e2b714;">Weak keys</h2>
+      {#if weakKeys.length === 0}
+        <p class="font-mono text-xs" style="color: #646669;">
+          Train a few sessions to see your weakest keys.
+        </p>
+      {:else}
+        <div class="flex gap-6 flex-wrap">
+          {#each weakKeys as stat}
+            <div class="flex flex-col items-center gap-1">
+              <span class="font-mono font-bold" style="font-size: 2rem; color: #d1d0c5;">
+                {stat.char === ' ' ? '␣' : stat.char}
+              </span>
+              <span class="font-mono text-xs" style="color: #ca4754;">
+                {(stat.errorRateEwma * 100).toFixed(0)}% errors
+              </span>
+              <span class="font-mono text-xs" style="color: #646669;">
+                {Math.round(stat.latencyEwmaMs)}ms
+              </span>
+              <span class="font-mono text-xs" style="color: #3c3c3c;">
+                {stat.attempts} attempts
+              </span>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
 
     <KeymapUpload />

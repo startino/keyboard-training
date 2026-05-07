@@ -4,6 +4,8 @@
   import DrillShell from '../components/DrillShell.svelte'
   import { saveSession } from '../stats'
   import { computeFlashcardStats } from './flashcardStats'
+  import { recordKeystroke, getKeyStats } from '../keyStats.svelte'
+  import { weaknessScore } from '../keyStats'
 
   interface Props {
     onBack: () => void
@@ -67,6 +69,9 @@
 
   const SESSION_LENGTH = 28
 
+  // Weighted-by-weakness toggle (default ON)
+  let useWeaknessBias = $state(true)
+
   let cards = $state<FlashCard[]>(buildCards())
   let currentIndex = $state(0)
   let totalCards = $state(SESSION_LENGTH)
@@ -85,12 +90,27 @@
   let shaking = $state(false)
   let shakeTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
 
+  /** Compute the effective pick-weight for a card, merging session weight and weakness bias. */
+  function effectiveWeight(card: FlashCard): number {
+    let w = card.weight // session weight (doubles on wrong, starts at 1)
+    if (useWeaknessBias) {
+      const stats = getKeyStats()
+      const stat = stats.byChar[card.char]
+      if (stat && stat.attempts >= 5) {
+        // Clamp to [1, 6]: weak keys up to 6× more likely than a strong key
+        const biasMultiplier = Math.min(6, 1 + 5 * weaknessScore(stat))
+        w *= biasMultiplier
+      }
+    }
+    return w
+  }
+
   function pickNextCard(): FlashCard | null {
     if (cards.length === 0) return null
-    const totalWeight = cards.reduce((sum, c) => sum + c.weight, 0)
+    const totalWeight = cards.reduce((sum, c) => sum + effectiveWeight(c), 0)
     let r = Math.random() * totalWeight
     for (const card of cards) {
-      r -= card.weight
+      r -= effectiveWeight(card)
       if (r <= 0) return card
     }
     return cards[cards.length - 1]
@@ -153,13 +173,16 @@
     const latency = now - cardShowTime
 
     if (isCorrectChar(e.key, currentCard.char)) {
-      // Correct
+      // Correct — record with actual latency from card show time
+      recordKeystroke(currentCard.char, true, latency)
       latencies.push({ char: currentCard.char, layerName: currentCard.layerName, ms: latency })
       wrongCount = 0
       showFlash('correct')
       setTimeout(() => advanceCard(), 150)
     } else {
-      // Wrong - double weight, re-present. cardShowTime is NOT reset here;
+      // Wrong — record against the TARGET char (we want to learn weakness on what was expected)
+      recordKeystroke(currentCard.char, false)
+      // Double weight, re-present. cardShowTime is NOT reset here;
       // latency = time from card shown to first correct keystroke (wrong
       // attempts are part of that reaction window).
       errorCount++
@@ -238,6 +261,7 @@
     singleEscOnDone={true}
   >
     {#snippet body()}
+      <div class="relative w-full flex flex-col items-center gap-6">
       <div
         class="flex flex-col items-center gap-6 transition-colors duration-150"
         class:fc-shake={shaking}
@@ -256,6 +280,18 @@
 
       <div class="font-mono text-sm" style="color: #646669;">
         {completed + 1} / {totalCards}
+      </div>
+
+      <button
+        onclick={() => (useWeaknessBias = !useWeaknessBias)}
+        class="absolute top-0 right-0 font-mono text-xs px-2 py-1 rounded border transition-colors"
+        style={useWeaknessBias
+          ? 'color: #e2b714; border-color: #e2b714; background: transparent;'
+          : 'color: #646669; border-color: #646669; background: transparent;'}
+        title="Toggle weak-key weighting"
+      >
+        {useWeaknessBias ? 'weighted by weakness' : 'uniform'}
+      </button>
       </div>
     {/snippet}
   </DrillShell>
