@@ -7,6 +7,7 @@ import {
   saveKeyStats,
   recordKeystroke as recordKeystrokePure,
   weakestKeys as weakestKeysPure,
+  clearKeyStats,
   type KeyStatsStore,
   type KeyStat,
 } from './keyStats'
@@ -26,4 +27,9 @@ export function recordKeystroke(char: string, correct: boolean, latencyMs?: numb
 /** Reactive top-N weakest keys (re-evaluates whenever store changes). */
 export function getWeakestKeys(limit = 5, minAttempts = 10): KeyStat[] {
   return weakestKeysPure(store, limit, minAttempts)
+}
+
+/** Clear all keystats from localStorage and zero the in-memory reactive store. */
+export function resetKeyStats(): void {
+  store = clearKeyStats()
 }

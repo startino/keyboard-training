@@ -9,6 +9,7 @@ import {
   recordKeystroke,
   weakestKeys,
   weaknessScore,
+  clearKeyStats,
   type KeyStatsStore,
   type KeyStat,
 } from './keyStats'
@@ -190,6 +191,34 @@ describe('weakestKeys', () => {
   it('returns empty array when no key meets minAttempts', () => {
     const store = makeStore([{ char: 'a', attempts: 2 }])
     expect(weakestKeys(store, 5, 10)).toHaveLength(0)
+  })
+})
+
+describe('clearKeyStats', () => {
+  beforeEach(() => localStorageMap.clear())
+
+  it('returns an empty store', () => {
+    const store = clearKeyStats()
+    expect(store.byChar).toEqual({})
+    expect(store.totalAttempts).toBe(0)
+  })
+
+  it('removes the localStorage key', () => {
+    const store: KeyStatsStore = { byChar: {}, totalAttempts: 7, updatedMs: 0 }
+    saveKeyStats(store)
+    expect(localStorageMap.has('kbd-training:keystats')).toBe(true)
+    clearKeyStats()
+    expect(localStorageMap.has('kbd-training:keystats')).toBe(false)
+  })
+
+  it('subsequent loadKeyStats returns empty store after clearKeyStats', () => {
+    let s: KeyStatsStore = { byChar: {}, totalAttempts: 0, updatedMs: 0 }
+    s = recordKeystroke(s, 'a', true, 100)
+    saveKeyStats(s)
+    clearKeyStats()
+    const reloaded = loadKeyStats()
+    expect(reloaded.totalAttempts).toBe(0)
+    expect(reloaded.byChar).toEqual({})
   })
 })
 

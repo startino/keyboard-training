@@ -115,3 +115,13 @@ export function weakestKeys(
     .sort((a, b) => weaknessScore(b) - weaknessScore(a))
     .slice(0, limit)
 }
+
+/** Remove all keystats from localStorage and return a fresh empty store. */
+export function clearKeyStats(): KeyStatsStore {
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // ignore
+  }
+  return emptyStore()
+}

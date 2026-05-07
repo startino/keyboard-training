@@ -111,7 +111,21 @@
     >⚙</button>
 
     {#if showSettings}
-      <SettingsPanel onClose={() => (showSettings = false)} />
+      <SettingsPanel onClose={() => {
+        showSettings = false
+        // Refresh home snapshots in case training history was reset from settings
+        lastSessions = {
+          flashcards: getLastSession('flashcards'),
+          thumbs: getLastSession('thumbs'),
+          chat: getLastSession('chat'),
+        }
+        recentSessions = {
+          flashcards: getRecentSessions('flashcards', 20),
+          thumbs: getRecentSessions('thumbs', 20),
+          chat: getRecentSessions('chat', 20),
+        }
+        weakKeys = getWeakestKeys(5, 10)
+      }} />
     {/if}
 
     <h1 class="text-4xl font-bold text-accent">Keyboard Training</h1>

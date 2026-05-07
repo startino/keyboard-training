@@ -62,3 +62,8 @@ export function getLastSession(drillId: string): SessionStats | null {
 export function getRecentSessions(drillId: string, n: number = 20): SessionStats[] {
   return getSessions(drillId).slice(0, n)
 }
+
+/** Remove all session history for every drill from localStorage. */
+export function resetSessions(): void {
+  clearStats()
+}

@@ -10,12 +10,39 @@
     TARGET_WPM_MAX,
     TARGET_WPM_STEP,
   } from '../settings.svelte'
+  import { resetKeyStats } from '../keyStats.svelte'
+  import { resetSessions } from '../stats'
 
   interface Props {
     onClose: () => void
   }
 
   let { onClose }: Props = $props()
+
+  // Two-step confirmation state for the destructive reset
+  let resetConfirming = $state(false)
+  let resetConfirmTimer: ReturnType<typeof setTimeout> | null = null
+  let resetDone = $state(false)
+
+  function handleResetHistory() {
+    if (!resetConfirming) {
+      resetConfirming = true
+      resetConfirmTimer = setTimeout(() => {
+        resetConfirming = false
+      }, 3000)
+      return
+    }
+    // Second click within window — execute the reset
+    if (resetConfirmTimer !== null) {
+      clearTimeout(resetConfirmTimer)
+      resetConfirmTimer = null
+    }
+    resetConfirming = false
+    resetKeyStats()
+    resetSessions()
+    resetDone = true
+    setTimeout(() => { resetDone = false }, 2500)
+  }
 </script>
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }} />
@@ -95,6 +122,22 @@
       <!-- Reset to defaults -->
       <div class="setting-row setting-row-reset">
         <button class="reset-btn" onclick={resetSettings}>reset to defaults</button>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="setting-row setting-row-danger">
+        <span class="danger-label">danger zone</span>
+        {#if resetDone}
+          <span class="reset-done-msg">training history cleared</span>
+        {:else}
+          <button
+            class="danger-btn"
+            class:danger-btn-confirm={resetConfirming}
+            onclick={handleResetHistory}
+          >
+            {resetConfirming ? 'click again to confirm' : 'reset training history'}
+          </button>
+        {/if}
       </div>
     </div>
   </div>
@@ -256,5 +299,52 @@
   .reset-btn:hover {
     color: #d1d0c5;
     border-color: #d1d0c5;
+  }
+
+  .setting-row-danger {
+    padding-top: 4px;
+    border-top: 1px solid #3c3c3c;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .danger-label {
+    font-size: 11px;
+    color: #ca4754;
+    letter-spacing: 0.5px;
+    text-transform: lowercase;
+  }
+
+  .danger-btn {
+    font-family: 'Roboto Mono', ui-monospace, monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #ca4754;
+    cursor: pointer;
+    background: transparent;
+    color: #ca4754;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    align-self: flex-start;
+  }
+
+  .danger-btn:hover {
+    background: rgba(202, 71, 84, 0.12);
+  }
+
+  .danger-btn-confirm {
+    border-color: #e2b714;
+    color: #e2b714;
+  }
+
+  .danger-btn-confirm:hover {
+    background: rgba(226, 183, 20, 0.12);
+  }
+
+  .reset-done-msg {
+    font-size: 11px;
+    color: #e2b714;
+    align-self: flex-start;
   }
 </style>
