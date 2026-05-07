@@ -66,6 +66,17 @@
       showKeyboard = !showKeyboard
       return
     }
+    // C2: Block browser shortcuts (Ctrl/Cmd/Alt combos), allow refresh and devtools
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      const key = e.key.toLowerCase()
+      const isRefresh = (e.ctrlKey || e.metaKey) && key === 'r'
+      const isDevtools = (e.ctrlKey || e.metaKey) && (key === 'i' || key === 'j' || key === 'u')
+      if (!isRefresh && !isDevtools) {
+        e.preventDefault()
+      }
+      return
+    }
+
     if (done) return
 
     // Track errors before handling

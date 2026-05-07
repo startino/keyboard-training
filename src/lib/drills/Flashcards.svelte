@@ -84,6 +84,9 @@
   let escPendingUntil = $state(0)
   let escHintTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
   let showEscHint = $state(false)
+  let wrongCount = $state(0)
+  let shaking = $state(false)
+  let shakeTimeout = $state<ReturnType<typeof setTimeout> | null>(null)
 
   function pickNextCard(): FlashCard | null {
     if (cards.length === 0) return null
@@ -98,6 +101,7 @@
 
   function advanceCard() {
     completed++
+    wrongCount = 0
     if (completed >= totalCards) {
       sessionDone = true
       saveDrillSession()
@@ -155,6 +159,24 @@
     })
   }
 
+  // Modifier-only keys that should never be counted as input
+  const MODIFIER_KEYS = new Set([
+    'Shift', 'Control', 'Alt', 'Meta', 'CapsLock',
+    'Tab', 'Escape', 'Enter', 'Backspace', 'Delete',
+    'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+    'Home', 'End', 'PageUp', 'PageDown',
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+  ])
+
+  function isCorrectChar(typed: string, target: string): boolean {
+    // Letters: case-insensitive (drill is about the key, not the case)
+    if (target.length === 1 && target.toLowerCase() !== target.toUpperCase()) {
+      return typed.toLowerCase() === target.toLowerCase()
+    }
+    // Non-letter glyphs: exact match
+    return typed === target
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       if (sessionDone) {
@@ -181,8 +203,23 @@
       showKeyboard = !showKeyboard
       return
     }
+
+    // C2: Block browser shortcuts (Ctrl/Cmd/Alt combos) but allow refresh and devtools
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      const key = e.key.toLowerCase()
+      const isRefresh = (e.ctrlKey || e.metaKey) && (key === 'r')
+      const isDevtools = (e.ctrlKey || e.metaKey) && (key === 'i' || key === 'j' || key === 'u')
+      if (!isRefresh && !isDevtools) {
+        e.preventDefault()
+      }
+      return
+    }
+
     if (sessionDone) return
     if (!currentCard) return
+
+    // Skip non-character keys (arrows, modifiers, fn keys, etc.)
+    if (MODIFIER_KEYS.has(e.key)) return
     if (e.key.length !== 1) return
 
     e.preventDefault()
@@ -190,21 +227,32 @@
     const now = Date.now()
     const latency = now - cardShowTime
 
-    if (e.key === currentCard.char) {
+    if (isCorrectChar(e.key, currentCard.char)) {
       // Correct
       latencies.push({ char: currentCard.char, layerName: currentCard.layerName, ms: latency })
+      wrongCount = 0
       showFlash('correct')
       setTimeout(() => advanceCard(), 150)
     } else {
       // Wrong - double weight, re-present
       errorCount++
+      wrongCount++
       currentCard.weight *= 2
       showFlash('incorrect')
+      triggerShake()
       // After flash, re-show same card with new timing
       setTimeout(() => {
         cardShowTime = Date.now()
       }, 300)
     }
+  }
+
+  function triggerShake() {
+    if (shakeTimeout) clearTimeout(shakeTimeout)
+    shaking = true
+    shakeTimeout = setTimeout(() => {
+      shaking = false
+    }, 300)
   }
 
   function showFlash(type: 'correct' | 'incorrect') {
@@ -283,6 +331,7 @@
   <main class="min-h-screen bg-bg flex flex-col items-center justify-center gap-8 px-4">
     <div
       class="flex flex-col items-center gap-6 transition-colors duration-150"
+      class:fc-shake={shaking}
       style:color={flashColor || '#d1d0c5'}
     >
       <span class="font-mono font-bold" style="font-size: 6rem; line-height: 1;">
@@ -291,6 +340,9 @@
       <span class="text-sm font-mono" style="color: #646669;">
         {currentCard.layerName} &middot; {FINGER_LABELS[currentCard.finger] || currentCard.finger}
       </span>
+      {#if wrongCount > 0}
+        <span class="font-mono text-sm" style="color: #ca4754;">× {wrongCount}</span>
+      {/if}
     </div>
 
     <div class="font-mono text-sm" style="color: #646669;">
@@ -298,7 +350,7 @@
     </div>
 
     {#if showKeyboard}
-      <VirtualKeyboard {lastTypedChar} forcedLayer={currentCard.layerName} />
+      <VirtualKeyboard {lastTypedChar} forcedLayer={currentCard.layerName} targetChar={currentCard.char} />
     {:else}
       <p class="font-mono text-xs" style="color: #646669;">tab to show keyboard</p>
     {/if}
@@ -314,3 +366,17 @@
     <button class="mt-4 font-mono text-accent underline" onclick={onBack}>Back to menu</button>
   </main>
 {/if}
+
+<style>
+  @keyframes fc-shake {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(-4px); }
+    40%  { transform: translateX(4px); }
+    60%  { transform: translateX(-4px); }
+    80%  { transform: translateX(4px); }
+    100% { transform: translateX(0); }
+  }
+  .fc-shake {
+    animation: fc-shake 300ms ease-in-out;
+  }
+</style>

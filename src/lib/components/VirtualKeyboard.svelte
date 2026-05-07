@@ -6,9 +6,10 @@
   interface Props {
     lastTypedChar: string | null
     forcedLayer?: string | null
+    targetChar?: string | null
   }
 
-  let { lastTypedChar, forcedLayer = null }: Props = $props()
+  let { lastTypedChar, forcedLayer = null, targetChar = null }: Props = $props()
 
   const keymap = $derived(getKeymap())
 
@@ -48,6 +49,11 @@
   const activeLayerName = $derived(forcedLayer ?? autoLayer)
   const activeLayer = $derived(
     keymap.layers.find((l) => l.name === activeLayerName) ?? keymap.layers[0]
+  )
+
+  // Derive the key id for the target character so we can highlight it
+  const targetKeyId = $derived(
+    targetChar && activeLayer ? findKeyIdForChar(activeLayer, targetChar) : null
   )
 
   let pulseToken = 0
@@ -240,6 +246,7 @@
         {@const y = rowY(key.row, key.col)}
         {@const id = `k-${key.position}`}
         {@const pulsing = pulseKeyId === id}
+        {@const isTarget = targetKeyId === id && !pulsing}
         {@const label = tapLabel(key.tap)}
         {@const badge = findHomeRowMod(key)}
         <g transform={`translate(${x} ${y})`}>
@@ -250,8 +257,8 @@
             ry="6"
             fill={pulsing ? '#e2b714' : '#2c2e31'}
             fill-opacity={pulsing ? 0.4 : 1}
-            stroke="#646669"
-            stroke-width="1"
+            stroke={isTarget ? '#3a78c2' : '#646669'}
+            stroke-width={isTarget ? 2 : 1}
             class="vk-key"
           />
           <text
@@ -278,6 +285,7 @@
         {@const p = thumbPos(i)}
         {@const id = `t-${thumb.position}`}
         {@const pulsing = pulseKeyId === id}
+        {@const isTarget = targetKeyId === id && !pulsing}
         {@const layerHold = layerHoldLabel(thumb.hold)}
         {@const label = layerHold ? tapLabel(thumb.tap) : tapLabel(thumb.tap)}
         <g transform={`translate(${p.x} ${p.y})`}>
@@ -288,8 +296,8 @@
             ry="8"
             fill={pulsing ? '#e2b714' : layerHold ? '#34363a' : '#2c2e31'}
             fill-opacity={pulsing ? 0.4 : 1}
-            stroke="#646669"
-            stroke-width="1"
+            stroke={isTarget ? '#3a78c2' : '#646669'}
+            stroke-width={isTarget ? 2 : 1}
             class="vk-key"
           />
           <text
